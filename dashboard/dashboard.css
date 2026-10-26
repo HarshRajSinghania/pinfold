@@ -426,7 +426,8 @@ body {
   height: 12px;
 }
 
-.tree-node-item:hover .tree-mini-edit-btn {
+.tree-node-item:hover .tree-mini-edit-btn,
+.tree-node-item:focus-within .tree-mini-edit-btn {
   display: inline-flex;
 }
 
@@ -460,7 +461,8 @@ body {
   gap: 2px;
 }
 
-.tree-node-item:hover .tree-item-actions {
+.tree-node-item:hover .tree-item-actions,
+.tree-node-item:focus-within .tree-item-actions {
   display: flex;
 }
 
@@ -1699,4 +1701,9 @@ body[data-theme="light"] .tab-hover-card {
 
 .hidden {
   display: none !important;
+}
+.tree-node-item:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -1px;
+  background-color: var(--bg-hover);
 }
