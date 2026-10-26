@@ -124,6 +124,39 @@ function updateSidebarCountsAndMemory() {
   document.getElementById('sidebarRamSaved').textContent = `~${formatMemory(totalRamMB)}`;
 }
 
+
+let lastFocusedTreeId = null;
+
+function getTreeItemId(item) {
+  return item.dataset.treeId || null;
+}
+
+function restoreTreeFocus() {
+  if (!lastFocusedTreeId) return;
+  const el = document.querySelector(`[data-tree-id="${lastFocusedTreeId}"]`);
+  if (el) {
+    el.focus();
+  }
+}
+
+function setupTreeItemKeyboard(item, activateFn) {
+  item.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      activateFn();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const toggle = item.querySelector('.tree-toggle-arrow:not(.hidden)');
+      if (toggle && !toggle.classList.contains('hidden')) {
+        e.preventDefault();
+        toggle.click();
+      }
+    }
+  });
+  item.addEventListener('focus', () => {
+    lastFocusedTreeId = item.dataset.treeId;
+  });
+}
+
 function renderTreeView() {
   const container = document.getElementById('treeViewContainer');
   container.innerHTML = '';
@@ -138,6 +171,11 @@ function renderTreeView() {
 
   const rootItem = document.createElement('div');
   rootItem.className = `tree-node-item ${isAllActive ? 'active' : ''}`;
+  rootItem.tabIndex = 0;
+  rootItem.setAttribute('role', 'treeitem');
+  rootItem.setAttribute('data-tree-id', 'all');
+  if (isAllActive) rootItem.setAttribute('aria-current', 'true');
+  rootItem.setAttribute('aria-expanded', isRootCollapsed ? 'false' : 'true');
   rootItem.innerHTML = `
     <span class="tree-toggle-arrow ${isRootCollapsed ? 'collapsed' : ''}">▼</span>
     <span class="tree-node-icon">📁</span>
@@ -155,11 +193,13 @@ function renderTreeView() {
     renderTreeView();
   });
 
-  rootItem.addEventListener('click', () => {
+  const activateRoot = () => {
     state.activeFilter = 'all';
     document.getElementById('currentViewTitle').textContent = 'All Tabs';
     renderDashboard();
-  });
+  };
+  rootItem.addEventListener('click', activateRoot);
+  setupTreeItemKeyboard(rootItem, activateRoot);
 
   rootItem.querySelector('.btn-add-subfolder').addEventListener('click', async (e) => {
     e.stopPropagation();
@@ -190,6 +230,7 @@ function renderTreeView() {
 
   rootNodeGroup.appendChild(rootChildrenContainer);
   container.appendChild(rootNodeGroup);
+  restoreTreeFocus();
 }
 
 function createTreeFolderBranch(folder) {
@@ -202,6 +243,11 @@ function createTreeFolderBranch(folder) {
 
   const folderItem = document.createElement('div');
   folderItem.className = `tree-node-item ${isFolderActive ? 'active' : ''}`;
+  folderItem.tabIndex = 0;
+  folderItem.setAttribute('role', 'treeitem');
+  folderItem.setAttribute('data-tree-id', `folder:${folder.id}`);
+  if (isFolderActive) folderItem.setAttribute('aria-current', 'true');
+  folderItem.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
   folderItem.innerHTML = `
     <span class="tree-toggle-arrow ${isCollapsed ? 'collapsed' : ''}">▼</span>
     <span class="tree-node-icon">📁</span>
@@ -233,11 +279,13 @@ function createTreeFolderBranch(folder) {
     await refreshData();
   });
 
-  folderItem.addEventListener('click', () => {
+  const activateFolder = () => {
     state.activeFilter = `folder:${folder.id}`;
     document.getElementById('currentViewTitle').textContent = folder.title;
     renderDashboard();
-  });
+  };
+  folderItem.addEventListener('click', activateFolder);
+  setupTreeItemKeyboard(folderItem, activateFolder);
 
   folderItem.querySelector('.btn-add-subfolder').addEventListener('click', async (e) => {
     e.stopPropagation();
@@ -289,6 +337,10 @@ function createTreeGroupLeaf(group) {
   const isGroupActive = state.activeFilter === `group:${group.id}`;
   leafItem.className = `tree-node-item ${isGroupActive ? 'active' : ''}`;
   leafItem.draggable = true;
+  leafItem.tabIndex = 0;
+  leafItem.setAttribute('role', 'treeitem');
+  leafItem.setAttribute('data-tree-id', `group:${group.id}`);
+  if (isGroupActive) leafItem.setAttribute('aria-current', 'true');
 
   const tabCount = group.tabs ? group.tabs.length : 0;
   const folder = state.folders.find(f => f.id === group.folderId);
@@ -331,11 +383,13 @@ function createTreeGroupLeaf(group) {
     });
   }
 
-  leafItem.addEventListener('click', () => {
+  const activateLeaf = () => {
     state.activeFilter = `group:${group.id}`;
     document.getElementById('currentViewTitle').textContent = name;
     renderDashboard();
-  });
+  };
+  leafItem.addEventListener('click', activateLeaf);
+  setupTreeItemKeyboard(leafItem, activateLeaf);
 
   leafItem.addEventListener('dragstart', (e) => {
     state.draggedGroupInfo = { groupId: group.id };
